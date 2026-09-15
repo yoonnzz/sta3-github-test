@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mini Tetris</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%235de4c7' d='M3 3h8v8H3zm9 0h8v8h-8zm9 0h8v8h-8zm-9 9h8v8h-8z'/%3E%3C/svg%3E">
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#10131a;color:#f7f8fb;font:16px system-ui,sans-serif}.game{text-align:center}h1{margin:0 0 8px;font-size:1.4rem}.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}button{border:0;border-radius:8px;background:#293044;color:inherit;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer}button:active{transform:translateY(1px);background:#3b4662}canvas{display:block;border:3px solid #39425a;background:#080a0f}.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.hint{margin:8px 0 0;color:#aeb7ca;font-size:.8rem}
+  </style>
+</head>
+<body>
+  <main class="game">
+    <h1>MINI TETRIS</h1>
+    <div class="bar"><span>점수 <b id="score">0</b></span><button id="restart">다시 시작</button></div>
+    <canvas id="board" width="200" height="400" aria-label="테트리스 게임판"></canvas>
+    <div class="keys"><button data-key="ArrowLeft">←</button><button data-key="ArrowDown">↓</button><button data-key="ArrowUp">↻</button><button data-key="ArrowRight">→</button></div>
+    <p class="hint">방향키 이동 · ↑ 회전 · Space 바로 내리기</p>
+  </main>
+  <script>
+    const C=document.querySelector('#board'),X=C.getContext('2d'),S=document.querySelector('#score');
+    const W=10,H=20,Z=20,colors=['','#5de4c7','#ffd166','#ef476f','#7b8cff','#b56cff','#48bfe3','#f78c6b'];
+    const shapes=[[[1,1,1,1]],[[2,2],[2,2]],[[0,3,0],[3,3,3]],[[4,0,0],[4,4,4]],[[0,0,5],[5,5,5]],[[0,6,6],[6,6,0]],[[7,7,0],[0,7,7]]];
+    let grid,piece,score,timer,over;
+    const blank=()=>Array.from({length:H},()=>Array(W).fill(0));
+    function spawn(){piece={m:shapes[Math.random()*shapes.length|0].map(r=>[...r]),x:3,y:0};if(hit())over=true}
+    function hit(dx=0,dy=0,m=piece.m){return m.some((r,y)=>r.some((v,x)=>v&&(piece.y+y+dy>=H||piece.x+x+dx<0||piece.x+x+dx>=W||grid[piece.y+y+dy]?.[piece.x+x+dx]))) }
+    function merge(){piece.m.forEach((r,y)=>r.forEach((v,x)=>{if(v)grid[piece.y+y][piece.x+x]=v}));let n=0;grid=grid.filter(r=>r.some(v=>!v)?true:(n++,false));while(grid.length<H)grid.unshift(Array(W).fill(0));score+=n*n*100;S.textContent=score;spawn()}
+    function drop(){if(!hit(0,1))piece.y++;else merge()}
+    function move(dx){if(!hit(dx))piece.x+=dx}
+    function rotate(){const m=piece.m[0].map((_,i)=>piece.m.map(r=>r[i]).reverse());if(!hit(0,0,m))piece.m=m}
+    function hard(){while(!hit(0,1))piece.y++;drop()}
+    function draw(){X.clearRect(0,0,C.width,C.height);[...grid.map(r=>[...r])].forEach((r,y)=>r.forEach((v,x)=>cell(x,y,v)));if(!over)piece.m.forEach((r,y)=>r.forEach((v,x)=>v&&cell(piece.x+x,piece.y+y,v)));if(over){X.fillStyle='#000b';X.fillRect(0,0,C.width,C.height);X.fillStyle='#fff';X.textAlign='center';X.font='bold 22px system-ui';X.fillText('게임 오버',100,190);X.font='14px system-ui';X.fillText('다시 시작을 눌러주세요',100,218)}requestAnimationFrame(draw)}
+    function cell(x,y,v){if(!v)return;X.fillStyle=colors[v];X.fillRect(x*Z+1,y*Z+1,Z-2,Z-2)}
+    function key(k){if(over)return;if(k==='ArrowLeft')move(-1);if(k==='ArrowRight')move(1);if(k==='ArrowDown')drop();if(k==='ArrowUp')rotate();if(k===' ')hard()}
+    function start(){clearInterval(timer);grid=blank();score=0;over=false;S.textContent=0;spawn();timer=setInterval(()=>{if(!over)drop()},500)}
+    addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',' '].includes(e.key)){e.preventDefault();key(e.key)}});
+    document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>key(b.dataset.key));document.querySelector('#restart').onclick=start;start();draw();
+  </script>
+</body>
+</html>
